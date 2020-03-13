@@ -1,8 +1,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
-#include "importedShaders.hpp"
 #include <string>
+#include "importedShaders.hpp"
+#include "shader.hpp"
 
 const float triangle[] = { // 0.866025403784 = sqrt(3)/2
   0.866025403784, -0.5,
@@ -10,9 +11,6 @@ const float triangle[] = { // 0.866025403784 = sqrt(3)/2
   -0.866025403784, -0.5
 };
 
-GLuint makeShader(const char *source, GLenum type);
-bool isShaderOkay(GLuint shader);
-char *getShaderInfoLog(GLuint shader); // please delete[] the returned value, may be NULL
 char *getProgramInfoLog(GLuint shader); // please delete[] the returned value, may be NULL
 void dumpErrors(const char *id = NULL); // handy debugging function
 
@@ -51,38 +49,26 @@ int main()
 
   char *compileLog = NULL;
 
-  GLuint vertexShader = makeShader(importedShaders::vert::pos2d, GL_VERTEX_SHADER);
-  glCompileShader(vertexShader);
-  compileLog = getShaderInfoLog(vertexShader);
-  if (compileLog != NULL) {
-    std::cout << "vertexShader:" << std::endl << compileLog << std::endl;
-    delete[] compileLog;
-  }
-  if (!isShaderOkay(vertexShader)) {
-    std::cerr << "VERTEX SHADER IS NOT OKAY!" << std::endl;
-    return 5;
-  } else {
-    std::cout << "vertexShader is okay" << std::endl;
+  ogl::shader *vertexShader = new ogl::shader(importedShaders::vert::pos2d, GL_VERTEX_SHADER);
+  if (vertexShader->hasShaderInfoLog()) {
+    std::cout << "vertexShader:" << std::endl << vertexShader->getShaderInfoLog() << std::endl;
   }
 
-  GLuint fragmentShader = makeShader(importedShaders::frag::white, GL_FRAGMENT_SHADER);
-  glCompileShader(fragmentShader);
-  compileLog = getShaderInfoLog(fragmentShader);
-  if (compileLog != NULL) {
-    std::cout << "fragmentShader:" << std::endl << compileLog << std::endl;
-    delete[] compileLog;
+  ogl::shader *fragmentShader = new ogl::shader(importedShaders::frag::white, GL_FRAGMENT_SHADER);
+  if (fragmentShader->hasShaderInfoLog()) {
+    std::cout << "fragmentShader:" << std::endl << fragmentShader->getShaderInfoLog() << std::endl;
   }
-  if (!isShaderOkay(fragmentShader)) {
-    std::cerr << "FRAGMENT SHADER IS NOT OKAY!" << std::endl;
+
+  if (!(vertexShader->isOkay() && fragmentShader->isOkay())) {
+    std::cerr << "Main shaders failed to compile." << std::endl;
+    std::cerr << "v:" << vertexShader->isOkay() << " f:" << fragmentShader->isOkay() << std::endl;
     return 5;
-  } else {
-    std::cout << "fragmentShader is okay" << std::endl;
   }
 
 
   GLuint shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
+  glAttachShader(shaderProgram, vertexShader->getHandle());
+  glAttachShader(shaderProgram, fragmentShader->getHandle());
   glBindFragDataLocation(shaderProgram, 0, "outColor");
   glLinkProgram(shaderProgram);
   GLint programIV = 0; // did it link?
@@ -121,29 +107,7 @@ int main()
   return 0;
 }
 
-GLuint makeShader(const char *source, GLenum type)
-{
-  GLuint shader = glCreateShader(type);
-  glShaderSource(shader, 1, &source, NULL);
-  return shader;
-}
 
-bool isShaderOkay(GLuint shader) {
-  GLint status;
-  glGetShaderiv(shader, GL_COMPILE_STATUS, &status);
-  return status == GL_TRUE;
-}
-
-char *getShaderInfoLog(GLuint shader) { // please delete[] the returned value, may be NULL
-  GLint length = 0;
-  glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-  if (length == 0) {
-    return NULL;
-  }
-  char *buffer = new char[length]; // Note: LARGE logs can cause problems
-  glGetShaderInfoLog(shader, length, NULL, buffer);
-  return buffer;
-}
 
 char *getProgramInfoLog(GLuint program) { // please delete[] the returned value, may be NULL
   GLint length = 0;
