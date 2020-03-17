@@ -5,10 +5,10 @@
 #include "importedShaders.hpp"
 #include "shader.hpp"
 
-const float triangle[] = { // 0.866025403784 = sqrt(3)/2
-  0.866025403784, -0.5,
-  0, 1,
-  -0.866025403784, -0.5
+const float triangle[] = { // 0.866025403784 = sqrt(3)/2 // XYRGB
+  0.866025403784, -0.5, 1., 0., 0.,
+  0, 1, 0., 1., 0.,
+  -0.866025403784, -0.5, 0., 0., 1.
 };
 
 char *getProgramInfoLog(GLuint shader); // please delete[] the returned value, may be NULL
@@ -49,12 +49,12 @@ int main()
 
   char *compileLog = NULL;
 
-  ogl::shader *vertexShader = new ogl::shader(importedShaders::vert::pos2d, GL_VERTEX_SHADER);
+  ogl::shader *vertexShader = new ogl::shader(importedShaders::vert::pos2col3, GL_VERTEX_SHADER);
   if (vertexShader->hasShaderInfoLog()) {
     std::cout << "vertexShader:" << std::endl << vertexShader->getShaderInfoLog() << std::endl;
   }
 
-  ogl::shader *fragmentShader = new ogl::shader(importedShaders::frag::white, GL_FRAGMENT_SHADER);
+  ogl::shader *fragmentShader = new ogl::shader(importedShaders::frag::pass, GL_FRAGMENT_SHADER);
   if (fragmentShader->hasShaderInfoLog()) {
     std::cout << "fragmentShader:" << std::endl << fragmentShader->getShaderInfoLog() << std::endl;
   }
@@ -83,8 +83,18 @@ int main()
   glUseProgram(shaderProgram);
 
   GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
+  dumpErrors();
+  GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
+  dumpErrors();
   glEnableVertexAttribArray(posAttrib);
-  glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 0, 0);
+  dumpErrors();
+  glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0);
+  dumpErrors();
+  glEnableVertexAttribArray(colAttrib);
+  dumpErrors();
+  glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void *)(2*sizeof(float)));
+  dumpErrors();
+
 
   // glfwSwapInterval(500); // v-sync
   while(!glfwWindowShouldClose(window)) {
