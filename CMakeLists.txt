@@ -8,10 +8,11 @@ set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(MOD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/modules")
 
 # This project
-set(SOURCES "${SRC_DIR}/main.cpp")
+set(SOURCES "${SRC_DIR}/main.cpp" "${SRC_DIR}/getFileContents.cpp")
 include_directories(lib)
 configure_file(lib/CMakeConfig.hpp.in lib/CMakeConfig.hpp)
 add_executable(${PROJECT_NAME} "${SOURCES}")
+file(COPY shaders DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 # GLM
 set(GLM_DIR "${MOD_DIR}/glm")

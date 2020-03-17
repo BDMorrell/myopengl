@@ -2,8 +2,8 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <string>
-#include "importedShaders.hpp"
 #include "shader.hpp"
+#include "getFileContents.hpp"
 
 const float triangle[] = { // 0.866025403784 = sqrt(3)/2 // XYRGB
   0.866025403784, -0.5, 1., 0., 0.,
@@ -49,12 +49,26 @@ int main()
 
   char *compileLog = NULL;
 
-  ogl::shader *vertexShader = new ogl::shader(importedShaders::vert::pos2col3, GL_VERTEX_SHADER);
+  struct rawData *fileSource;
+
+  if ((fileSource = getFileContents("shaders/pos2col3.vert")) == NULL) {
+    std::cerr << "filed to load *.vert" << std::endl;
+    return 5;
+  }
+  ogl::shader *vertexShader = new ogl::shader(fileSource->value, GL_VERTEX_SHADER, fileSource->size);
+  delete[] fileSource->value;
+  delete fileSource;
   if (vertexShader->hasShaderInfoLog()) {
     std::cout << "vertexShader:" << std::endl << vertexShader->getShaderInfoLog() << std::endl;
   }
 
-  ogl::shader *fragmentShader = new ogl::shader(importedShaders::frag::pass, GL_FRAGMENT_SHADER);
+  if ((fileSource = getFileContents("shaders/colorPass.frag")) == NULL) {
+    std::cerr << "filed to load *.frag" << std::endl;
+    return 5;
+  }
+  ogl::shader *fragmentShader = new ogl::shader(fileSource->value, GL_FRAGMENT_SHADER, fileSource->size);
+  delete[] fileSource->value;
+  delete fileSource;
   if (fragmentShader->hasShaderInfoLog()) {
     std::cout << "fragmentShader:" << std::endl << fragmentShader->getShaderInfoLog() << std::endl;
   }
@@ -116,8 +130,6 @@ int main()
   glfwTerminate();
   return 0;
 }
-
-
 
 char *getProgramInfoLog(GLuint program) { // please delete[] the returned value, may be NULL
   GLint length = 0;

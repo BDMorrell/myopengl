@@ -16,12 +16,16 @@ namespace ogl {
       this->compileStatus = (status == GL_TRUE);
     }
   public:
-    shader(const char *source, GLenum type) {
+    shader(const char *source, GLenum type, int sourceLength = 0) { // int because GLint* asked for
       this->type = type;
       this->compileLog = NULL;
       this->compileLogRequested = false;
       this->handle = glCreateShader(type);
-      glShaderSource(this->handle, 1, &source, NULL);
+      if (sourceLength == 0) {
+        glShaderSource(this->handle, 1, &source, NULL);
+      } else {
+        glShaderSource(this->handle, 1, &source, &sourceLength);
+      }
       this->compileShader();
       // no error handling :(
     }
