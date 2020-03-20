@@ -12,7 +12,7 @@ set(SOURCES "${SRC_DIR}/main.cpp" "${SRC_DIR}/getFileContents.cpp")
 include_directories(lib)
 configure_file(lib/CMakeConfig.hpp.in lib/CMakeConfig.hpp)
 add_executable(${PROJECT_NAME} "${SOURCES}")
-file(COPY shaders DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+file(COPY shaders assets DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
 # GLM
 set(GLM_DIR "${MOD_DIR}/glm")
@@ -37,3 +37,4 @@ target_link_libraries(${PROJECT_NAME} PRIVATE "glad" "${CMAKE_DL_LIBS}")
 
 # STB
 include_directories("${MOD_DIR}/stb")
+link_directories("${MOD_DIR}/stb")

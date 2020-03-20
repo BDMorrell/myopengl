@@ -4,11 +4,20 @@
 #include <string>
 #include "shader.hpp"
 #include "getFileContents.hpp"
+#define STBI_FAILURE_USERMSG
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
-const float triangle[] = { // 0.866025403784 = sqrt(3)/2 // XYRGB
-  0.866025403784, -0.5, 1., 0., 0.,
-  0, 1, 0., 1., 0.,
-  -0.866025403784, -0.5, 0., 0., 1.
+const float verticies[] = { // 0.866025403784 = sqrt(3)/2 // XYRGBST
+   .75,  .75, 1., 1., 1., 1., 1.,
+  -.75,  .75, 1., 1., 1., 0., 1.,
+  -.75, -.75, 1., 1., 1., 0., 0.,
+   .75, -.75, 1., 1., 1., 1., 0.
+};
+
+const GLuint squareElements[] = {
+  0, 1, 2,
+  0, 2, 3
 };
 
 char *getProgramInfoLog(GLuint shader); // please delete[] the returned value, may be NULL
@@ -45,13 +54,42 @@ int main()
   GLuint vbo;
   glGenBuffers(1, &vbo);
   glBindBuffer(GL_ARRAY_BUFFER, vbo);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(verticies), verticies, GL_STATIC_DRAW);
+
+  GLuint ebo;
+  glGenBuffers(1, &ebo);
+  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+  glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(squareElements), squareElements, GL_STATIC_DRAW);
+
+  GLuint textureA, textureB;
+  glGenTextures(1, &textureA);
+  glGenTextures(1, &textureB); // I know, I know. I just don't want to worry about an array right now; which is silly of me
+  int width, height;
+  unsigned char *pixels = stbi_load("assets/A.jpg", &width, &height, NULL, 3);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, textureA);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+  stbi_image_free(pixels);
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(GL_TEXTURE_2D, textureB);
+  pixels = stbi_load("assets/B.jpg", &width, &height, NULL, 3);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+  stbi_image_free(pixels);
+  // TODO: FINISH LOADING IN TEXTURES, AND DISPLAY THEM!!!
 
   char *compileLog = NULL;
 
   struct rawData *fileSource;
 
-  if ((fileSource = getFileContents("shaders/pos2col3.vert")) == NULL) {
+  if ((fileSource = getFileContents("shaders/pos2col3tex2.vert")) == NULL) {
     std::cerr << "filed to load *.vert" << std::endl;
     return 5;
   }
@@ -62,7 +100,7 @@ int main()
     std::cout << "vertexShader:" << std::endl << vertexShader->getShaderInfoLog() << std::endl;
   }
 
-  if ((fileSource = getFileContents("shaders/colorPass.frag")) == NULL) {
+  if ((fileSource = getFileContents("shaders/doubleTextureColor.frag")) == NULL) {
     std::cerr << "filed to load *.frag" << std::endl;
     return 5;
   }
@@ -97,18 +135,17 @@ int main()
   glUseProgram(shaderProgram);
 
   GLint posAttrib = glGetAttribLocation(shaderProgram, "position");
-  dumpErrors();
-  GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
-  dumpErrors();
   glEnableVertexAttribArray(posAttrib);
-  dumpErrors();
-  glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 5*sizeof(float), 0);
-  dumpErrors();
+  glVertexAttribPointer(posAttrib, 2, GL_FLOAT, GL_FALSE, 7*sizeof(float), 0);
+  GLint colAttrib = glGetAttribLocation(shaderProgram, "color");
   glEnableVertexAttribArray(colAttrib);
-  dumpErrors();
-  glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 5*sizeof(float), (void *)(2*sizeof(float)));
-  dumpErrors();
+  glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 7*sizeof(float), (void *)(2*sizeof(float)));
+  GLint texAttrib = glGetAttribLocation(shaderProgram, "texcoord");
+  glEnableVertexAttribArray(texAttrib);
+  glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, 7*sizeof(float), (void *)(5*sizeof(float)));
 
+  glUniform1i(glGetUniformLocation(shaderProgram, "texA"), 0);
+  glUniform1i(glGetUniformLocation(shaderProgram, "texB"), 1);
 
   // glfwSwapInterval(500); // v-sync
   while(!glfwWindowShouldClose(window)) {
@@ -119,7 +156,7 @@ int main()
     glClearColor(((float) time++/255.), 0., 0., 1.);
     glClear(GL_COLOR_BUFFER_BIT);
     glUseProgram(shaderProgram);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     glfwSwapBuffers(window);
     glfwPollEvents();
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {

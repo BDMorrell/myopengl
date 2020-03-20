@@ -5,3 +5,5 @@ This is a basic self-made template. Help guides to remove coder's block include:
   * [Open.gl](https://open.gl/)
 
 I have used `cmake` and `git submodule`, so be sure to use those.
+
+Please provide images `A.jpg` and `B.jpg` in the `assets` folder.
